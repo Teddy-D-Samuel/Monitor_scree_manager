@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Sales Ops Dashboard</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#1a1a1a;color:#fff;font-family:'Segoe UI',sans-serif;font-size:13px;height:100vh;display:flex;flex-direction:column;overflow:hidden}
+button{cursor:pointer;font-family:inherit}
+input{font-family:inherit}
+
+/* TOPBAR — Even brand blue #1967d2 */
+.topbar{display:flex;align-items:center;padding:0 24px;height:64px;background:#1967d2;border-bottom:3px solid #1255b0;flex-shrink:0;gap:16px}
+.logo-fixed{display:flex;align-items:center;flex-shrink:0;height:100%;padding:10px 0}
+.logo-fixed img{height:38px;width:auto;object-fit:contain;display:block}
+.dash-title{flex:1;text-align:center;font-size:19px;font-weight:700;letter-spacing:2.5px;color:#fff;text-transform:uppercase}
+.maintained{font-size:11px;color:rgba(255,255,255,0.65);white-space:nowrap;flex-shrink:0;text-align:right;line-height:1.6}
+.maintained span{color:#fff;font-weight:700;display:block;font-size:12px}
+
+/* LAYOUT */
+.page-body{display:flex;flex:1;overflow:hidden;min-height:0}
+
+/* SIDEBAR — medium blue */
+.sidebar{width:175px;background:#1e6fa8;border-right:1px solid #1a6096;padding:10px;display:flex;flex-direction:column;gap:8px;flex-shrink:0;overflow-y:auto}
+.s-lbl{font-size:9px;letter-spacing:1.5px;color:rgba(255,255,255,0.5);text-transform:uppercase;font-weight:700;margin-bottom:2px}
+.upload-zone{border:1px dashed rgba(255,255,255,0.3);border-radius:4px;padding:12px 8px;text-align:center;cursor:pointer;position:relative;background:rgba(0,0,0,0.2);transition:border .15s}
+.upload-zone:hover{border-color:#fff}
+.upload-zone input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%}
+.uz-icon{font-size:18px;display:block;margin-bottom:3px}
+.uz-txt{font-size:10px;color:rgba(255,255,255,0.4);pointer-events:none}
+.slide-list{display:flex;flex-direction:column;gap:5px;overflow-y:auto;flex:1;min-height:0}
+.slide-item{border:1px solid rgba(255,255,255,0.15);border-radius:4px;overflow:hidden;cursor:pointer;transition:border .15s;flex-shrink:0}
+.slide-item:hover{border-color:rgba(255,255,255,0.6)}
+.slide-item.active{border-color:#fff;box-shadow:0 0 0 1px rgba(255,255,255,0.25)}
+.s-thumb{height:50px;background:rgba(0,0,0,0.2);overflow:hidden;display:flex;align-items:center;justify-content:center}
+.s-thumb img{width:100%;height:100%;object-fit:cover}
+.s-name{padding:4px 6px;font-size:9px;color:rgba(255,255,255,0.5);background:rgba(0,0,0,0.2);display:flex;justify-content:space-between;align-items:center}
+.s-name span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+.del{background:none;border:none;color:rgba(255,255,255,0.3);font-size:11px;padding:0;flex-shrink:0}
+.del:hover{color:#e74c3c}
+.s-hint{font-size:10px;color:rgba(255,255,255,0.3);margin-top:auto;padding:4px 2px}
+
+/* MAIN — dark */
+.main{flex:1;display:flex;flex-direction:column;padding:10px;overflow:hidden;min-width:0;background:#111}
+.ctrl-lbl{font-size:9px;letter-spacing:1.5px;color:#4a9fe8;text-transform:uppercase;font-weight:700;margin-bottom:6px}
+.stage{flex:1;background:#0a0a0a;border:1px solid #222;border-radius:4px;display:flex;align-items:center;justify-content:center;overflow:hidden;min-height:0}
+.stage img{max-width:100%;max-height:100%;object-fit:contain}
+.no-sig{display:flex;flex-direction:column;align-items:center;gap:8px}
+.no-sig svg{width:44px;height:44px;stroke:#2a2a2a;fill:none;stroke-width:1.5}
+.no-sig span{font-size:11px;letter-spacing:2px;color:#2a2a2a}
+
+/* CTRL BARS */
+.ctrl-bar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:8px 0 0;flex-shrink:0}
+.c-btn{padding:7px 16px;border:1px solid #333;border-radius:3px;font-size:12px;color:#ccc;background:#000}
+.c-btn:hover:not(:disabled){border-color:#fff;color:#fff}
+.c-btn:disabled{opacity:.25;cursor:not-allowed}
+.push1{background:#1967d2;color:#fff;font-weight:700;border:none;padding:7px 12px;border-radius:3px;font-size:12px}
+.push1:hover:not(:disabled){background:#1255b0}
+.stop1{background:#c0392b;color:#fff;font-weight:700;border:none;padding:7px 12px;border-radius:3px;font-size:12px;display:none}
+.stop1:hover:not(:disabled){background:#a93226}
+.push2{background:#fff;color:#1967d2;font-weight:700;border:none;padding:7px 12px;border-radius:3px;font-size:12px}
+.push2:hover:not(:disabled){background:#e0eef8}
+.stop2{background:#7f8c8d;color:#fff;font-weight:700;border:none;padding:7px 12px;border-radius:3px;font-size:12px;display:none}
+.stop2:hover:not(:disabled){background:#636e72}
+.pushall{background:transparent;color:#fff;font-weight:700;border:1px solid #444;padding:7px 12px;border-radius:3px;font-size:12px}
+.pushall:hover:not(:disabled){background:#222}
+button:disabled{opacity:.25;cursor:not-allowed}
+
+/* TIMER */
+.timer-row{display:flex;align-items:center;gap:10px;padding:6px 0 0;flex-shrink:0}
+.t-bar-bg{flex:1;height:6px;background:#1a1a1a;border-radius:3px;overflow:hidden;border:1px solid #222}
+.t-bar{height:100%;border-radius:3px;width:0%;transition:width .95s linear;background:#1967d2}
+.t-txt{font-size:11px;color:#444;min-width:70px;text-align:right}
+.dur-grp{display:flex;align-items:center;gap:6px;font-size:11px;color:#555}
+.dur-in{width:44px;text-align:center;background:#000;border:1px solid #333;border-radius:3px;color:#fff;padding:5px 4px;font-size:12px}
+.dur-in:focus{outline:none;border-color:#1967d2}
+.auto-tog{padding:6px 14px;background:#000;border:1px solid #333;border-radius:3px;font-size:11px;color:#555}
+.auto-tog.on{border-color:#1967d2;color:#4a9fe8;font-weight:600}
+
+/* RIGHT PANEL */
+.right{width:300px;background:#e8f4fb;border-left:1px solid #c5dff0;display:flex;flex-direction:column;flex-shrink:0}
+.sc-block{flex:1;display:flex;flex-direction:column;border-bottom:1px solid #c5dff0;min-height:0}
+.sc-block:last-child{border-bottom:none}
+.sc-view{flex:1;background:#eef5ff;display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative;min-height:100px}
+.sc-view img.pushed{width:100%;height:100%;object-fit:contain}
+
+/* Waiting state — shows Image 2 */
+.sc-waiting{width:100%;height:100%;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.sc-waiting img{width:100%;height:100%;object-fit:cover}
+/* fallback if no waiting img */
+.sc-waiting .wait-fallback{display:flex;flex-direction:column;align-items:center;gap:6px;opacity:.35}
+.sc-waiting .wait-fallback span{font-size:10px;color:#1967d2;letter-spacing:1px;text-transform:uppercase}
+
+.sc-badge{position:absolute;top:6px;left:6px;font-size:9px;padding:2px 7px;border-radius:2px;font-weight:700;letter-spacing:1px;z-index:2}
+.b1{background:#1967d2;color:#fff}
+.b2{background:#1255b0;color:#fff}
+.live-dot{position:absolute;top:7px;right:8px;width:8px;height:8px;border-radius:50%;background:#2ecc71;box-shadow:0 0 6px #2ecc71;display:none;z-index:2}
+.sc-foot{padding:7px 10px;display:flex;align-items:center;justify-content:space-between;border-top:1px solid #c5dff0;flex-shrink:0;gap:6px;background:#e8f4fb;flex-wrap:wrap}
+.sc-meta{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
+.sc-title{font-size:11px;font-weight:700;color:#1967d2;text-transform:uppercase;letter-spacing:1px}
+.sc-file{font-size:10px;color:#7aaac8;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:150px}
+.sc-stat{font-size:10px;font-weight:700;letter-spacing:.5px;flex-shrink:0}
+.sc-stat.live{color:#1967d2}
+.sc-stat.idle{color:#b0cfe0}
+.open-win{font-size:10px;padding:4px 8px;background:#fff;border:1px solid #b0cfe0;border-radius:3px;color:#1967d2;flex-shrink:0}
+.open-win:hover{background:#1967d2;border-color:#1967d2;color:#fff}
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="logo-fixed">
+    <!-- Even logo from image 1 — white version on blue bg -->
+    <svg viewBox="0 0 160 60" xmlns="http://www.w3.org/2000/svg" height="42" width="auto">
+      <!-- balloon body -->
+      <ellipse cx="24" cy="22" rx="18" ry="20" fill="white"/>
+      <!-- balloon string -->
+      <path d="M24 42 Q21 50 24 56 Q27 58 26 60" stroke="white" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+      <!-- "even" text -->
+      <text x="50" y="34" font-size="28" font-family="'Segoe UI',Arial,sans-serif" font-weight="700" fill="white" letter-spacing="-0.5">even</text>
+    </svg>
+  </div>
+
+  <div class="dash-title">Sales Ops Dashboard</div>
+
+  <div class="maintained">
+    Created and maintained by
+    <span>David Teddy</span>
+  </div>
+</div>
+
+<!-- BODY -->
+<div class="page-body">
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="s-lbl">Slides</div>
+    <div class="upload-zone">
+      <input type="file" accept="image/*" multiple onchange="handleUpload(event)"/>
+      <span class="uz-icon">⬆</span>
+      <span class="uz-txt">Add Screenshot</span>
+    </div>
+    <div class="slide-list" id="slide-list"></div>
+    <div class="s-hint" id="s-hint">Upload screenshots to begin</div>
+  </div>
+
+  <!-- CONTROLLER -->
+  <div class="main">
+    <div class="ctrl-lbl">Controller</div>
+    <div class="stage" id="stage">
+      <div class="no-sig" id="no-sig">
+        <svg viewBox="0 0 44 44"><rect x="3" y="6" width="38" height="26" rx="3"/><line x1="14" y1="37" x2="30" y2="37"/><line x1="22" y1="32" x2="22" y2="37"/></svg>
+        <span>— × Preview × —</span>
+      </div>
+      <img id="stage-img" style="display:none"/>
+    </div>
+
+    <div class="ctrl-bar">
+      <button class="c-btn" id="btn-prev" onclick="prevSlide()" disabled>PREV</button>
+      <button class="c-btn" id="btn-next" onclick="nextSlide()" disabled>NEXT</button>
+      <div style="flex:1"></div>
+      <button class="push1" id="bp1" onclick="pushTo(1)" disabled>PUSH LIVE Screen 1</button>
+      <button class="stop1" id="bs1" onclick="stopScreen(1)">STOP LIVE Screen 1</button>
+      <button class="push2" id="bp2" onclick="pushTo(2)" disabled>PUSH LIVE Screen 2</button>
+      <button class="stop2" id="bs2" onclick="stopScreen(2)">STOP LIVE Screen 2</button>
+      <button class="pushall" id="bpa" onclick="pushToAll()" disabled>PUSH ALL</button>
+    </div>
+
+    <div class="ctrl-bar">
+      <div class="dur-grp">
+        Duration
+        <input class="dur-in" id="dur-val" type="number" value="10" min="1" max="300" onchange="resetTimer()"/>
+        SEC
+      </div>
+      <button class="auto-tog" id="auto-btn" onclick="toggleAuto()">AUTO</button>
+    </div>
+
+    <div class="timer-row">
+      <div class="t-bar-bg"><div class="t-bar" id="t-bar"></div></div>
+      <div class="t-txt" id="t-txt">— Timer —</div>
+    </div>
+  </div>
+
+  <!-- SCREENS -->
+  <div class="right">
+    <div class="sc-block">
+      <div class="sc-view" id="sc1-view">
+        <!-- Waiting image (Image 2) shown when idle/stopped -->
+        <div class="sc-waiting" id="sc1-waiting">
+          <img id="sc1-wait-img" src="" style="display:none"/>
+          <div class="wait-fallback" id="sc1-wait-fallback">
+            <svg viewBox="0 0 80 100" width="60" height="75" xmlns="http://www.w3.org/2000/svg">
+              <ellipse cx="40" cy="34" rx="30" ry="32" fill="#1967d2"/>
+              <path d="M40 66 Q34 82 40 94 Q46 98 44 100" stroke="#1967d2" stroke-width="4" fill="none" stroke-linecap="round"/>
+            </svg>
+            <span>even</span>
+          </div>
+        </div>
+        <img id="sc1-img" class="pushed" style="display:none"/>
+        <div class="sc-badge b1">SCREEN 1</div>
+        <div class="live-dot" id="sc1-dot"></div>
+      </div>
+      <div class="sc-foot">
+        <div class="sc-meta">
+          <div class="sc-title">Screen 1</div>
+          <div class="sc-file" id="sc1-file">Waiting...</div>
+        </div>
+        <span class="sc-stat idle" id="sc1-stat">IDLE</span>
+        <button class="open-win" onclick="openWindow(1)">⛶ Pop out</button>
+      </div>
+    </div>
+
+    <div class="sc-block">
+      <div class="sc-view" id="sc2-view">
+        <div class="sc-waiting" id="sc2-waiting">
+          <img id="sc2-wait-img" src="" style="display:none"/>
+          <div class="wait-fallback" id="sc2-wait-fallback">
+            <svg viewBox="0 0 80 100" width="60" height="75" xmlns="http://www.w3.org/2000/svg">
+              <ellipse cx="40" cy="34" rx="30" ry="32" fill="#1967d2"/>
+              <path d="M40 66 Q34 82 40 94 Q46 98 44 100" stroke="#1967d2" stroke-width="4" fill="none" stroke-linecap="round"/>
+            </svg>
+            <span>even</span>
+          </div>
+        </div>
+        <img id="sc2-img" class="pushed" style="display:none"/>
+        <div class="sc-badge b2">SCREEN 2</div>
+        <div class="live-dot" id="sc2-dot"></div>
+      </div>
+      <div class="sc-foot">
+        <div class="sc-meta">
+          <div class="sc-title">Screen 2</div>
+          <div class="sc-file" id="sc2-file">Waiting...</div>
+        </div>
+        <span class="sc-stat idle" id="sc2-stat">IDLE</span>
+        <button class="open-win" onclick="openWindow(2)">⛶ Pop out</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+let slides=[],curIdx=-1,autoOn=false,timerInterval=null,timerRemain=0;
+let screenWins={1:null,2:null},screenSrc={1:null,2:null},screenLive={1:false,2:false};
+
+// ── Waiting image (Image 2) — loaded once via FileReader drop ──
+// We embed it as a data URL so it works fully offline/locally.
+// Users can drop Image 2 onto either screen panel to set it.
+let waitingSrc = null;
+
+// Auto-load waiting image from a hidden file input
+function loadWaitingImage(e){
+  const f=e.target.files[0]; if(!f) return;
+  const r=new FileReader();
+  r.onload=ev=>{
+    waitingSrc=ev.target.result;
+    // Apply to both screen waiting panels
+    [1,2].forEach(sc=>{
+      const wImg=document.getElementById(`sc${sc}-wait-img`);
+      const wFb=document.getElementById(`sc${sc}-wait-fallback`);
+      wImg.src=waitingSrc; wImg.style.display='block';
+      wFb.style.display='none';
+    });
+  };
+  r.readAsDataURL(f);
+}
+
+// Drag & drop waiting image onto screen panels
+[1,2].forEach(sc=>{
+  const view=document.getElementById(`sc${sc}-view`);
+  view.addEventListener('dragover',e=>{e.preventDefault();e.stopPropagation();});
+  view.addEventListener('drop',e=>{
+    e.preventDefault();
+    if(screenLive[sc]) return; // only update waiting when idle
+    const f=e.dataTransfer.files[0];
+    if(!f||!f.type.startsWith('image/')) return;
+    const r=new FileReader();
+    r.onload=ev=>{
+      waitingSrc=ev.target.result;
+      [1,2].forEach(s=>{
+        const wImg=document.getElementById(`sc${s}-wait-img`);
+        const wFb=document.getElementById(`sc${s}-wait-fallback`);
+        wImg.src=waitingSrc; wImg.style.display='block';
+        wFb.style.display='none';
+      });
+    };
+    r.readAsDataURL(f);
+  });
+});
+
+function getWaitingHTML(){
+  if(waitingSrc) return `<img src="${waitingSrc}" style="max-width:100%;max-height:100%;object-fit:cover"/>`;
+  return `<div style="display:flex;flex-direction:column;align-items:center;gap:12px;font-family:Segoe UI,sans-serif">
+    <svg viewBox="0 0 80 100" width="90" height="110" xmlns="http://www.w3.org/2000/svg">
+      <ellipse cx="40" cy="34" rx="30" ry="32" fill="#1967d2"/>
+      <path d="M40 66 Q34 82 40 94 Q46 98 44 100" stroke="#1967d2" stroke-width="4" fill="none" stroke-linecap="round"/>
+    </svg>
+    <span style="font-size:28px;font-weight:700;color:#1967d2;letter-spacing:-1px">even</span>
+  </div>`;
+}
+
+// ── Slides ─────────────────────────────────────────────────────
+function handleUpload(e){
+  Array.from(e.target.files).forEach(f=>{
+    const r=new FileReader();
+    r.onload=ev=>{
+      slides.push({name:f.name,src:ev.target.result});
+      if(slides.length===1) selectSlide(0);
+      renderSidebar();updateBtns();
+    };
+    r.readAsDataURL(f);
+  });
+  e.target.value='';
+}
+function renderSidebar(){
+  document.getElementById('slide-list').innerHTML=slides.map((s,i)=>`
+    <div class="slide-item${i===curIdx?' active':''}" onclick="selectSlide(${i})">
+      <div class="s-thumb"><img src="${s.src}"/></div>
+      <div class="s-name"><span title="${s.name}">${s.name}</span>
+        <button class="del" onclick="event.stopPropagation();delSlide(${i})">✕</button>
+      </div>
+    </div>`).join('');
+  document.getElementById('s-hint').style.display=slides.length?'none':'block';
+}
+function delSlide(i){
+  slides.splice(i,1);
+  if(curIdx>=slides.length) curIdx=slides.length-1;
+  if(!slides.length){curIdx=-1;clearStage();}
+  else selectSlide(curIdx);
+  renderSidebar();updateBtns();
+}
+function selectSlide(i){
+  if(i<0||i>=slides.length) return;
+  curIdx=i;
+  const img=document.getElementById('stage-img');
+  img.src=slides[i].src;img.style.display='block';
+  document.getElementById('no-sig').style.display='none';
+  renderSidebar();
+  if(autoOn) resetTimer();
+}
+function clearStage(){
+  document.getElementById('stage-img').style.display='none';
+  document.getElementById('no-sig').style.display='flex';
+}
+function prevSlide(){if(slides.length) selectSlide((curIdx-1+slides.length)%slides.length);}
+function nextSlide(){if(slides.length) selectSlide((curIdx+1)%slides.length);}
+
+// ── Push / Stop ────────────────────────────────────────────────
+function pushTo(sc){
+  if(curIdx<0) return;
+  const s=slides[curIdx];
+  screenSrc[sc]=s.src; screenLive[sc]=true;
+  document.getElementById(`sc${sc}-waiting`).style.display='none';
+  const img=document.getElementById(`sc${sc}-img`);
+  img.src=s.src; img.style.display='block';
+  document.getElementById(`sc${sc}-file`).textContent=s.name;
+  const st=document.getElementById(`sc${sc}-stat`);
+  st.textContent='LIVE'; st.className='sc-stat live';
+  document.getElementById(`sc${sc}-dot`).style.display='block';
+  togglePushStop(sc,true);
+  updatePopup(sc,s.src);
+}
+function pushToAll(){pushTo(1);pushTo(2);}
+
+function stopScreen(sc){
+  screenLive[sc]=false; screenSrc[sc]=null;
+  document.getElementById(`sc${sc}-img`).style.display='none';
+  document.getElementById(`sc${sc}-waiting`).style.display='flex';
+  document.getElementById(`sc${sc}-file`).textContent='Waiting...';
+  const st=document.getElementById(`sc${sc}-stat`);
+  st.textContent='IDLE'; st.className='sc-stat idle';
+  document.getElementById(`sc${sc}-dot`).style.display='none';
+  togglePushStop(sc,false);
+  const w=screenWins[sc];
+  if(w&&!w.closed) renderPopup(w,sc,null);
+}
+function togglePushStop(sc,live){
+  document.getElementById(`bp${sc}`).style.display=live?'none':'inline-block';
+  document.getElementById(`bs${sc}`).style.display=live?'inline-block':'none';
+}
+
+// ── Popup window ───────────────────────────────────────────────
+function openWindow(sc){
+  const w=window.open('',`screen${sc}`,'width=1280,height=720');
+  screenWins[sc]=w;
+  renderPopup(w,sc,screenSrc[sc]);
+}
+function renderPopup(w,sc,src){
+  if(!w||w.closed) return;
+  const content=src
+    ?`<img src="${src}" style="max-width:100%;max-height:100%;object-fit:contain"/>`
+    :getWaitingHTML();
+  w.document.open();
+  w.document.write(`<!DOCTYPE html><html><head><title>Screen ${sc}</title>
+  <style>*{margin:0;padding:0}body{background:#eef5ff;display:flex;align-items:center;justify-content:center;height:100vh;overflow:hidden}
+  .badge{position:fixed;top:10px;left:10px;font-size:11px;padding:3px 10px;border-radius:2px;font-family:'Segoe UI',sans-serif;font-weight:700;letter-spacing:1px;background:${sc===1?'#1967d2':'#1255b0'};color:#fff}</style>
+  </head><body>${content}<div class="badge">SCREEN ${sc}</div></body></html>`);
+  w.document.close();
+}
+function updatePopup(sc,src){const w=screenWins[sc];if(w&&!w.closed) renderPopup(w,sc,src);}
+
+// ── Auto / Timer ───────────────────────────────────────────────
+function toggleAuto(){
+  autoOn=!autoOn;
+  const btn=document.getElementById('auto-btn');
+  btn.classList.toggle('on',autoOn);
+  btn.textContent=autoOn?'AUTO ON':'AUTO';
+  if(autoOn&&slides.length) startTimer(); else stopTimer();
+}
+function startTimer(){
+  stopTimer();
+  timerRemain=parseInt(document.getElementById('dur-val').value)||10;
+  drawTimer();
+  timerInterval=setInterval(()=>{
+    timerRemain--;drawTimer();
+    if(timerRemain<=0){
+      nextSlide();
+      if(screenLive[1]) pushTo(1);
+      if(screenLive[2]) pushTo(2);
+      timerRemain=parseInt(document.getElementById('dur-val').value)||10;
+    }
+  },1000);
+}
+function stopTimer(){
+  clearInterval(timerInterval);timerInterval=null;
+  document.getElementById('t-bar').style.width='0%';
+  document.getElementById('t-txt').textContent='— Timer —';
+}
+function resetTimer(){if(autoOn&&slides.length) startTimer();}
+function drawTimer(){
+  const total=parseInt(document.getElementById('dur-val').value)||10;
+  const pct=(timerRemain/total)*100;
+  const bar=document.getElementById('t-bar');
+  bar.style.width=pct+'%';
+  bar.style.background=pct>50?'#1967d2':pct>25?'#f0a026':'#e74c3c';
+  document.getElementById('t-txt').textContent=`Next in ${timerRemain}s`;
+}
+function updateBtns(){
+  const has=slides.length>0;
+  ['btn-prev','btn-next','bp1','bp2','bpa'].forEach(id=>document.getElementById(id).disabled=!has);
+}
+</script>
+</body>
+</html>
